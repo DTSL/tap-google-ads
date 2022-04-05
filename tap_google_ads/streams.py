@@ -384,7 +384,7 @@ class BaseStream:  # pylint: disable=too-many-instance-attributes
 
         return transformed_message
 
-    def sync(self, sdk_client, customer, stream, config, state): # pylint: disable=unused-argument
+    def sync(self, sdk_client, customer, stream, config, state, schemaless=False): # pylint: disable=unused-argument
         gas = sdk_client.get_service("GoogleAdsService", version=API_VERSION)
         resource_name = self.google_ads_resource_names[0]
         stream_name = stream["stream"]
@@ -408,16 +408,17 @@ class BaseStream:  # pylint: disable=too-many-instance-attributes
             LOGGER.warning("Failed query: %s", query)
             raise err
 
-        with metrics.record_counter(stream_name) as counter:
-            with Transformer() as transformer:
-                # Pages are fetched automatically while iterating through the response
-                for message in response:
-                    json_message = google_message_to_json(message)
-                    transformed_message = self.transform_keys(json_message)
-                    record = transformer.transform(transformed_message, stream["schema"], singer.metadata.to_map(stream_mdata))
+        with Transformer() as transformer:
+            # Pages are fetched automatically while iterating through the response
+            for message in response:
+                json_message = google_message_to_json(message)
+                if not schemaless:
+                    transformed_obj = self.transform_keys(json_message)
+                    record = transformer.transform(transformed_obj, stream["schema"], singer.metadata.to_map(stream_mdata))
 
                     singer.write_record(stream_name, record)
-                    counter.increment()
+                else:
+                    singer.write_record(stream_name, json_message)
 
                     # Write state(last_pk_fetched) using primary key(id) value for core streams after DEFAULT_PAGE_SIZE records
                     if counter.value % DEFAULT_PAGE_SIZE == 0 and self.filter_param:
@@ -627,7 +628,7 @@ class ReportStream(BaseStream):
 
         return transformed_message
 
-    def sync(self, sdk_client, customer, stream, config, state):
+    def sync(self, sdk_client, customer, stream, config, state, schemaless=False):
         gas = sdk_client.get_service("GoogleAdsService", version=API_VERSION)
         resource_name = self.google_ads_resource_names[0]
         stream_name = stream["stream"]
@@ -683,11 +684,14 @@ class ReportStream(BaseStream):
                 # Pages are fetched automatically while iterating through the response
                 for message in response:
                     json_message = google_message_to_json(message)
-                    transformed_message = self.transform_keys(json_message)
-                    record = transformer.transform(transformed_message, stream["schema"])
-                    record["_sdc_record_hash"] = generate_hash(record, stream_mdata)
+                    if not schemaless:
+                        transformed_obj = self.transform_keys(json_message)
+                        record = transformer.transform(transformed_obj, stream["schema"])
+                        record["_sdc_record_hash"] = generate_hash(record, stream_mdata)
 
-                    singer.write_record(stream_name, record)
+                        singer.write_record(stream_name, record)
+                    else:
+                        singer.write_record(stream_name, json_message)
 
             new_bookmark_value = {replication_key: utils.strftime(query_date)}
             singer.write_bookmark(state, stream["tap_stream_id"], customer["customerId"], new_bookmark_value)
