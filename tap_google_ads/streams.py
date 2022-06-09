@@ -784,12 +784,6 @@ def initialize_core_streams(resource_schema):
             ["id"],
             {"customer_id"},
         ),
-        "geo_target_constant": BaseStream(
-            report_definitions.GEO_TARGET_CONSTANT_FIELDS,
-            ["geo_target_constant"],
-            resource_schema,
-            ["id"],
-        ),
     }
 
 
