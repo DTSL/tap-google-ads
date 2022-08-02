@@ -81,6 +81,7 @@ def do_sync(config, catalog, resource_schema, state):
 
     # Get query limit
     query_limit = get_query_limit(config)
+
     # QA ADDED WORKAROUND [END]
     customers = sort_customers(customers)
 

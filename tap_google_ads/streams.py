@@ -14,8 +14,6 @@ from . import report_definitions
 
 LOGGER = singer.get_logger()
 
-API_VERSION = "v10"
-
 API_PARAMETERS = {
     "omit_unselected_resource_names": "true"
 }
@@ -499,7 +497,6 @@ class BaseStream:  # pylint: disable=too-many-instance-attributes
 
                 # Break the loop if no more records are available or the LIMIT clause is not possible.
                 is_more_records = False
-
 
         # Flush the state for core streams if sync is completed
         if stream["tap_stream_id"] in state.get('bookmarks', {}):
