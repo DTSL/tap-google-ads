@@ -32,7 +32,7 @@ setup(name='tap-google-ads',
           tap-google-ads=tap_google_ads:main
       ''',
       packages=['tap_google_ads'],
-      package_data = {
+      package_data={
       },
       include_package_data=True,
 )
